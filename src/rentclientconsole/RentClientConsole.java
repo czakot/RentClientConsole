@@ -69,7 +69,7 @@ public class RentClientConsole {
     if (firstSpaceAt < 0) {
       command = line;
     } else {
-      command = line.substring(0, firstSpaceAt - 1);
+      command = line.substring(0, firstSpaceAt);
       extension = line.substring(firstSpaceAt + 1);
     }
     processReceivedCommand(command, extension);
@@ -101,7 +101,7 @@ public class RentClientConsole {
         break;
       case "terminate":
       case "disconnect":
-        String origin = (command.equals("terminate")) ? "solicited" : "forced";
+        String origin = (command.equals("disconnect")) ? "solicited" : "forced";
         try {
           s.close();
           logger.log(Level.INFO, "Closing connection ({0}) and exiting ...", origin);
@@ -124,7 +124,7 @@ public class RentClientConsole {
     pw.flush();
   }
   private static void sendCommandToServer(String command) {
-    System.out.print(PROMPT + command);
+    System.out.println(PROMPT + command);
     pw.println(command);
     pw.flush();
   }
