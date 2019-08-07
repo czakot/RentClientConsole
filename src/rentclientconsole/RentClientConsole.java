@@ -1,6 +1,8 @@
 package rentclientconsole;
 
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.Socket;
 import java.util.Arrays;
@@ -24,9 +26,11 @@ public class RentClientConsole {
 
   private static ResourceBundle messages;
   private static Socket s;
-  private static Scanner sc;
+//  private static Scanner sc;
+  private static BufferedReader br;
   private static PrintWriter pw;
-  private static Scanner console;
+//  private static Scanner console;
+  private static BufferedReader console;
   private static final Logger logger = Logger.getLogger(RentClientConsole.class.getName());
   private static final LinkedList<String> availableCommands = new LinkedList();
 
@@ -50,9 +54,11 @@ public class RentClientConsole {
     boolean successful = true;
     try {
       s = new Socket(HOST, PORT);
-      sc = new Scanner(s.getInputStream());
+//      sc = new Scanner(s.getInputStream());
+      br = new BufferedReader(new InputStreamReader(s.getInputStream()));
       pw = new PrintWriter(s.getOutputStream());
-      console = new Scanner(System.in);
+//      console = new Scanner(System.in);
+      console = new BufferedReader(new InputStreamReader(System.in));
     } catch (IOException ex) {
       successful = false;
       String msg = "Server not running or port (" + PORT +") or host (" + HOST + ") mismatching.";
@@ -62,17 +68,26 @@ public class RentClientConsole {
   }
 
   private static void commandsFromServer() {
-    String command;
+    String command = "idle";
     String extension = null;
-    String line = sc.nextLine().trim().replaceAll(WHITESPACES, SPACE);
-    int firstSpaceAt = line.indexOf(SPACE);
-    if (firstSpaceAt < 0) {
-      command = line;
-    } else {
-      command = line.substring(0, firstSpaceAt);
-      extension = line.substring(firstSpaceAt + 1);
+//    String line = sc.nextLine().trim().replaceAll(WHITESPACES, SPACE);
+    try {
+      if (br.ready()) {
+        String line = br.readLine().trim().replaceAll(WHITESPACES, SPACE);
+        int firstSpaceAt = line.indexOf(SPACE);
+        if (firstSpaceAt < 0) {
+          command = line;
+        } else {
+          command = line.substring(0, firstSpaceAt);
+          extension = line.substring(firstSpaceAt + 1);
+        }
+        processReceivedCommand(command, extension);
+      } else {
+        processReceivedCommand(command, extension); // idle
+      }
+    } catch (IOException ex) {
+      Logger.getLogger(RentClientConsole.class.getName()).log(Level.SEVERE, null, ex);
     }
-    processReceivedCommand(command, extension);
   }
 
   private static void processReceivedCommand(String command, String commandExtension) {
@@ -109,19 +124,31 @@ public class RentClientConsole {
           Logger.getLogger(RentClientConsole.class.getName()).log(Level.SEVERE, null, ex);
         }
         break;
+      case "idle":
+        sendCommandToServer(true);
+        break;
       case "copy":
-        sendCommandToServer();
+        sendCommandToServer(false);
         break;
       default:
     }
   }
 
-  private static void sendCommandToServer() {
+  private static void sendCommandToServer(boolean idle) {
     String command;
-    System.out.print(PROMPT);
-    command = console.nextLine();
-    pw.println(command);
-    pw.flush();
+    if (!idle) {
+      System.out.print(PROMPT);
+    }
+//    command = console.nextLine();
+    try {
+      if (console.ready()) {
+        command = console.readLine();
+        pw.println(command);
+        pw.flush();
+      }
+    } catch (IOException ex) {
+      Logger.getLogger(RentClientConsole.class.getName()).log(Level.SEVERE, null, ex);
+    }
   }
   private static void sendCommandToServer(String command) {
     System.out.println(PROMPT + command);
